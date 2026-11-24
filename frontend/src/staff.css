@@ -1,0 +1,529 @@
+/* Styles only the staff and admin pages need. */
+
+/* Filter toolbar */
+
+.toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.toolbar > label,
+.toolbar > .field-label {
+  flex: 1 1 160px;
+}
+
+.toolbar input {
+  background-color: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.toolbar .segmented {
+  background: var(--fill-hover);
+}
+
+.toolbar .toolbar-status {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+/* Month navigation, ‹ month › today */
+
+.month-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 980px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.month-nav button.icon {
+  background: transparent;
+  width: 34px;
+  min-height: 34px;
+  font-size: 20px;
+  color: var(--text-2);
+}
+
+.month-nav button.icon:hover {
+  background: var(--fill);
+  color: var(--text);
+}
+
+/* Legend */
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  font-size: 13px;
+  color: var(--text-2);
+  margin-bottom: 14px;
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+/* Calendar grid */
+
+.calendar-card {
+  padding: 8px 0 4px;
+}
+
+.calendar-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.calendar {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+  width: max-content;
+  min-width: 100%;
+}
+
+.calendar th {
+  padding: 8px 0 6px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 28px;
+}
+
+.calendar thead th .dow {
+  display: block;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-3);
+  margin-top: 1px;
+}
+
+.calendar thead th.weekend {
+  color: var(--text-2);
+}
+
+.calendar thead th.holiday {
+  color: var(--red);
+}
+
+.calendar thead th.holiday .dow::after {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 4px;
+  margin: 3px auto 0;
+  border-radius: 50%;
+  background: var(--red);
+}
+
+.calendar thead th.is-today {
+  color: var(--accent);
+}
+
+.calendar .room-col {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface);
+  text-align: left;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0 14px 0 18px;
+  min-width: 150px;
+  max-width: 190px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-right: 1px solid var(--separator);
+}
+
+.calendar thead .room-col {
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.calendar td {
+  padding: 2px 1px;
+  border-top: 0;
+}
+
+.calendar tbody tr:hover {
+  background: transparent;
+}
+
+.calendar tbody tr:hover .room-col {
+  color: var(--accent);
+}
+
+.cell::before {
+  content: '';
+  display: block;
+  height: 30px;
+  min-width: 24px;
+  border-radius: 7px;
+  background: var(--fill);
+  opacity: 0.55;
+  transition: transform 0.15s var(--ease);
+}
+
+.cell:hover::before {
+  transform: scale(1.08);
+}
+
+.cell.holiday::before {
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--red) 45%, transparent);
+}
+
+.cell-confirmed::before,
+.swatch-confirmed {
+  background: #34c759;
+  opacity: 1;
+}
+
+.cell-pending::before,
+.swatch-pending {
+  background: #ffcc66;
+  opacity: 1;
+}
+
+.cell-blocked::before,
+.swatch-blocked {
+  background: repeating-linear-gradient(135deg, #aeaeb2 0 3px, #d1d1d6 3px 6px);
+  opacity: 1;
+}
+
+.swatch-free {
+  background: var(--fill);
+}
+
+.swatch-holiday {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--red);
+}
+
+.calendar-foot {
+  font-size: 13px;
+  color: var(--text-2);
+  padding: 12px 18px 10px;
+  border-top: 1px solid var(--separator);
+  margin-top: 6px;
+}
+
+/* Two-column layouts */
+
+.manage-grid,
+.admin-grid,
+.calendar-forms {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+.calendar-forms {
+  margin-top: 28px;
+}
+
+.manage-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panel form {
+  margin-top: 18px;
+}
+
+/* Room tiles on the staff rooms page */
+
+.room-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.room-tile {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  color: inherit;
+  transition:
+    box-shadow 0.25s var(--ease),
+    transform 0.25s var(--ease);
+}
+
+.room-tile:hover {
+  text-decoration: none;
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+}
+
+.room-tile .media {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--fill);
+}
+
+.room-tile.inactive .media {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+.room-tile .tile-body {
+  padding: 16px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.room-tile .tile-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.room-tile .facts {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.room-tile .price {
+  margin-top: auto;
+  padding-top: 10px;
+  font-size: 15px;
+}
+
+.room-tile .price strong {
+  font-weight: 600;
+}
+
+.room-tile .manage {
+  font-size: 14px;
+  color: var(--link);
+}
+
+/* Photos on the manage page */
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.photo-grid figure {
+  margin: 0;
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--fill);
+}
+
+.photo-grid img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-grid .remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 26px;
+  min-height: 26px;
+  padding: 0;
+  font-size: 16px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.photo-grid .remove:hover {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+/* Requests table */
+
+.reject-form {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.reject-form input {
+  min-width: 180px;
+  min-height: 32px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+td .actions {
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
+
+.guest-cell .sub {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.note-cell {
+  max-width: 200px;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+/* Report */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.stat {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 20px 22px;
+}
+
+.stat-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-value small {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin-left: 2px;
+}
+
+.bar-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 180px;
+}
+
+.bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 980px;
+  background: var(--fill);
+  overflow: hidden;
+}
+
+.bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.bar-value {
+  width: 48px;
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Admin */
+
+.admin-grid .list {
+  margin-top: 16px;
+}
+
+.count-pill {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 980px;
+  background: var(--fill);
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (max-width: 760px) {
+  .manage-grid,
+  .admin-grid,
+  .calendar-forms {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar .room-col {
+    min-width: 120px;
+    max-width: 140px;
+    padding-left: 14px;
+  }
+
+  .stats {
+    gap: 10px;
+  }
+
+  .stat {
+    padding: 14px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+  }
+
+  .stat-value {
+    font-size: 26px;
+  }
+
+  .stat-value small {
+    font-size: 16px;
+  }
+}
