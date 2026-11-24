@@ -1,0 +1,12 @@
+node_modules
+dist
+# Secrets: backend/.env and infra/floci/floci.env, only .env.example is committed
+.env
+.env.*
+!.env.example
+backend/.env
+infra/floci/floci.env
+.vercel
+uploads
+infra/floci/build
+.DS_Store
