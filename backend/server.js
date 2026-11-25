@@ -3,7 +3,7 @@ import cors from 'cors';
 import express from 'express';
 import serverless from 'serverless-http';
 import { z } from 'zod';
-import { HttpError, authenticate } from './middleware.js';
+import { HttpError, authenticate } from './http.js';
 import adminRoutes from './routes/admin.js';
 import authRoutes from './routes/auth.js';
 import availabilityRoutes from './routes/availability.js';

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { HttpError, email, requireRole } from '../middleware.js';
+import { HttpError, email, requireRole } from '../http.js';
 import * as users from '../services/userService.js';
 
 const router = Router();

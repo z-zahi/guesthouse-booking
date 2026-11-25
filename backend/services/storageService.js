@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { HttpError } from '../middleware.js';
+import { HttpError } from '../http.js';
 
 export const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || 'uploads');
 

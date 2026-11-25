@@ -1,4 +1,4 @@
-import { HttpError } from '../middleware.js';
+import { HttpError } from '../http.js';
 import { query, queryOne } from './db.js';
 import { addDays, nights } from './dates.js';
 import * as availability from './availabilityService.js';

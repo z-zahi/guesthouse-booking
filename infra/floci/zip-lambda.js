@@ -3,7 +3,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 
 const backend = path.resolve(import.meta.dirname, '..', '..', 'backend');
-const include = ['server.js', 'middleware.js', 'routes', 'services', 'package.json', 'node_modules'];
+const include = ['server.js', 'http.js', 'routes', 'services', 'package.json', 'node_modules'];
 const outDir = path.join(import.meta.dirname, 'build');
 const output = path.join(outDir, 'api.zip');
 

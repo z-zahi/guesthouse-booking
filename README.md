@@ -37,7 +37,7 @@ One middleware verifies the JWT on every request.
 backend/
   server.js           App entry with middleware, routers, 404 and error handler. Listens on PORT (default 3000)
                       locally, default export for Vercel, `handler` export for AWS Lambda (Floci)
-  middleware.js       HttpError, JWT authentication, requireRole, isStaffOf, shared zod schemas
+  http.js             HttpError, JWT authentication, requireRole, isStaffOf, shared zod schemas
   routes/             One express.Router per area: auth.js, admin.js, rooms.js, bookings.js, availability.js
   services/           Data access (SQL) and business logic, no HTTP. db.js (pool, room lock), dates.js and
                       one service each for users, guesthouses, rooms, pricing, storage, bookings, email,

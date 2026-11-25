@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { HttpError, date, futureDate, id, idParam, isStaffOf, month, ordered, requireRole } from '../middleware.js';
+import { HttpError, date, futureDate, id, idParam, isStaffOf, month, ordered, requireRole } from '../http.js';
 import { withRoomLock } from '../services/db.js';
 import { addDays, today } from '../services/dates.js';
 import * as availability from '../services/availabilityService.js';

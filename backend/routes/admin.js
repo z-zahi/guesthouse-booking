@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { HttpError, email, id, requireRole } from '../middleware.js';
+import { HttpError, email, id, requireRole } from '../http.js';
 import * as guesthouses from '../services/guesthouseService.js';
 import * as users from '../services/userService.js';
 
