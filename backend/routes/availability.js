@@ -13,7 +13,7 @@ const router = Router();
 router.param('id', idParam);
 
 const Check = z
-  .object({ from: date, to: date, room_id: id.optional(), guesthouse_id: id.optional() })
+  .object({ from: futureDate, to: date, room_id: id.optional(), guesthouse_id: id.optional() })
   .refine((q) => q.room_id || q.guesthouse_id, { path: ['room_id'], message: 'room_id or guesthouse_id is required' })
   .refine(...ordered('from', 'to'));
 const BlockFilters = z.object({ room_id: id.optional(), from: date.optional() });
@@ -72,6 +72,7 @@ router.post('/blocks', staff, async (req, res) => {
   const block = NewBlock.parse(req.body);
   await ownRoom(req.user, block.room_id);
   const created = await withRoomLock(block.room_id, async () => {
+    // bn3mel check 3ala el confirmed bookings 3ashan man7salsh double booking
     const clashes = await availability.conflictsFor([block.room_id], block.start_date, addDays(block.end_date, 1));
     const stay = clashes.find((c) => c.type === 'booking');
     if (stay)
@@ -90,6 +91,9 @@ router.post('/blocks', staff, async (req, res) => {
     }
     return availability.createBlock(block);
   });
+  console.log(
+    `[blocks] Created block #${created.id} for room ${block.room_id} (${block.start_date} to ${block.end_date})`,
+  );
   res.status(201).json({ block: created });
 });
 
@@ -98,6 +102,7 @@ router.delete('/blocks/:id', staff, async (req, res) => {
   if (!block) throw new HttpError(404, 'BLOCK_NOT_FOUND', 'Block not found.');
   await ownRoom(req.user, block.room_id);
   await availability.removeBlock(block.id);
+  console.log(`[blocks] Deleted block #${block.id} for room ${block.room_id}`);
   res.status(204).end();
 });
 

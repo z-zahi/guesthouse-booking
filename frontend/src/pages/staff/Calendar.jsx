@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ChoiceField, DateInput, MonthNavigation } from '../../fields.jsx';
 import { Input } from '@base-ui/react/input';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api, query, today, thisMonth } from '../../api.js';
 import { Alert, Loading } from '../../components.jsx';
 import { useLoad, useAction, formData } from '../../hooks.jsx';
@@ -31,10 +31,15 @@ export default function Calendar() {
   const [params, setParams] = useSearchParams();
   const requested = params.get('month') || '';
   const month = /^20\d{2}-(0[1-9]|1[0-2])$/.test(requested) ? requested : thisMonth();
-  const setMonth = (month) => setParams({ month });
+  const selectedRoom = params.get('room') || 'all';
+  const setMonth = (nextMonth) =>
+    setParams(selectedRoom !== 'all' ? { month: nextMonth, room: selectedRoom } : { month: nextMonth });
+  const setRoom = (nextRoom) => setParams(nextRoom !== 'all' ? { month, room: nextRoom } : { month });
+
   const cal = useLoad(`/api/calendar${query({ month })}`);
   const blocks = useLoad('/api/blocks');
   const [blockForm, setBlockForm] = useState(0);
+  const [selectedCell, setSelectedCell] = useState(null);
   const action = useAction();
 
   const reloadAll = () => {
@@ -59,18 +64,54 @@ export default function Calendar() {
   };
 
   const removeBlock = (b) => {
-    action.run(() => api(`/api/blocks/${b.id}`, { method: 'DELETE' }), 'Block removed.').then(reloadAll);
+    action
+      .run(() => api(`/api/blocks/${b.id}`, { method: 'DELETE' }), 'Block removed.')
+      .then((r) => {
+        if (r !== undefined) reloadAll();
+      });
   };
 
   const data = cal.data;
   const holidays = Object.fromEntries((data?.holidays || []).map((h) => [h.date, h.name]));
   const now = today();
+  const allRooms = data?.rooms || [];
+  const visibleRooms = selectedRoom === 'all' ? allRooms : allRooms.filter((r) => String(r.id) === selectedRoom);
+  const roomFilterItems = [
+    { value: 'all', label: 'All rooms' },
+    ...allRooms.map((room) => ({ value: String(room.id), label: room.name })),
+  ];
 
   return (
     <div className="page">
       <PageHead title="Calendar" lead="Every room, every night of the month.">
-        <MonthNavigation month={month} onChange={setMonth} />
-        <button className="plain" onClick={() => setMonth(thisMonth())} disabled={month === thisMonth()}>
+        {allRooms.length > 0 && (
+          <div className="calendar-room-filter">
+            <ChoiceField
+              label="Room"
+              items={roomFilterItems}
+              value={selectedRoom}
+              onValueChange={(value) => {
+                setSelectedCell(null);
+                setRoom(value || 'all');
+              }}
+            />
+          </div>
+        )}
+        <MonthNavigation
+          month={month}
+          onChange={(m) => {
+            setSelectedCell(null);
+            setMonth(m);
+          }}
+        />
+        <button
+          className="plain"
+          onClick={() => {
+            setSelectedCell(null);
+            setMonth(thisMonth());
+          }}
+          disabled={month === thisMonth()}
+        >
           Today
         </button>
       </PageHead>
@@ -88,7 +129,7 @@ export default function Calendar() {
       {data?.holiday_warning && <Alert type="info">{data.holiday_warning}</Alert>}
       {cal.loading && !data && <Loading />}
       {data &&
-        (data.rooms.length === 0 ? (
+        (visibleRooms.length === 0 ? (
           <div className="list">
             <Empty icon="calendar" title="No rooms yet">
               Add rooms to see them here.
@@ -121,21 +162,30 @@ export default function Calendar() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.rooms.map((room) => (
+                  {visibleRooms.map((room) => (
                     <tr key={room.id}>
                       <th className="room-col" title={room.name}>
                         {room.name}
                         {!room.is_active && <span className="muted small"> (inactive)</span>}
                       </th>
-                      {room.nights.map((n) => (
-                        <td
-                          key={n.date}
-                          className={`cell cell-${n.status}${holidays[n.date] ? ' holiday' : ''}`}
-                          title={cellTitle(n, holidays[n.date])}
-                        >
-                          <span className="sr-only">{cellTitle(n, holidays[n.date])}</span>
-                        </td>
-                      ))}
+                      {room.nights.map((n) => {
+                        const isSelected = selectedCell?.room.id === room.id && selectedCell?.night.date === n.date;
+                        return (
+                          <td
+                            key={n.date}
+                            className={`cell cell-${n.status}${holidays[n.date] ? ' holiday' : ''}${isSelected ? ' selected' : ''}`}
+                          >
+                            <button
+                              type="button"
+                              className="cell-btn"
+                              title={cellTitle(n, holidays[n.date])}
+                              aria-label={`${room.name}, ${cellTitle(n, holidays[n.date])}`}
+                              aria-pressed={isSelected}
+                              onClick={() => setSelectedCell({ room, night: n })}
+                            />
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))}
                 </tbody>
@@ -149,6 +199,46 @@ export default function Calendar() {
           </div>
         ))}
 
+      {selectedCell && (
+        <section className="panel calendar-detail" aria-live="polite">
+          <div className="panel-head">
+            <div>
+              <h2 className="section-title">
+                {selectedCell.room.name} · {fmtDate(selectedCell.night.date)}
+              </h2>
+              {holidays[selectedCell.night.date] && (
+                <p className="sub">Public holiday: {holidays[selectedCell.night.date]}</p>
+              )}
+            </div>
+            <button type="button" className="plain small" onClick={() => setSelectedCell(null)}>
+              Close
+            </button>
+          </div>
+          {selectedCell.night.status === 'confirmed' && (
+            <p className="calendar-detail-text">
+              Confirmed booking #{selectedCell.night.booking_id} for <strong>{selectedCell.night.guest}</strong> (
+              {fmtRange(selectedCell.night.check_in, selectedCell.night.check_out)}).{' '}
+              <Link to="/staff/requests?status=Confirmed">View in Requests</Link>
+            </p>
+          )}
+          {selectedCell.night.status === 'blocked' && (
+            <p className="calendar-detail-text">
+              Blocked ({fmtRange(selectedCell.night.start_date, selectedCell.night.end_date)}):{' '}
+              {selectedCell.night.reason || 'No reason provided.'}
+            </p>
+          )}
+          {selectedCell.night.status === 'pending' && (
+            <p className="calendar-detail-text">
+              {selectedCell.night.requests} pending booking request(s) for this night.{' '}
+              <Link to="/staff/requests?status=Pending">Review requests</Link>
+            </p>
+          )}
+          {selectedCell.night.status === 'free' && (
+            <p className="calendar-detail-text">This night is free and available for booking.</p>
+          )}
+        </section>
+      )}
+
       <div className="calendar-forms">
         <section className="panel">
           <h2 className="section-title">Block dates</h2>
@@ -159,8 +249,8 @@ export default function Calendar() {
               name="room_id"
               placeholder="Choose a room"
               required
-              disabled={!data?.rooms.length}
-              items={(data?.rooms || []).map((room) => ({ value: String(room.id), label: room.name }))}
+              disabled={!allRooms.length}
+              items={allRooms.map((room) => ({ value: String(room.id), label: room.name }))}
             />
             <div className="row">
               <DateInput label="First night" name="start_date" min={today()} required />
@@ -172,7 +262,7 @@ export default function Calendar() {
             </label>
             {action.alert}
             <div className="actions">
-              <button type="submit" disabled={action.busy || !data?.rooms.length}>
+              <button type="submit" disabled={action.busy || !allRooms.length}>
                 Block dates
               </button>
             </div>

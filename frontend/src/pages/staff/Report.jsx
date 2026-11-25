@@ -21,7 +21,7 @@ export default function Report() {
   const [params, setParams] = useSearchParams();
   const requested = params.get('month') || '';
   const month = /^20\d{2}-(0[1-9]|1[0-2])$/.test(requested) ? requested : thisMonth();
-  const setMonth = (month) => setParams({ month });
+  const setMonth = (nextMonth) => setParams({ month: nextMonth });
   const { data, error, loading } = useLoad(`/api/reports/occupancy${query({ month })}`);
 
   return (
@@ -46,7 +46,7 @@ export default function Report() {
           <>
             <div className="stats">
               <div className="stat">
-                <div className="stat-label">Occupancy</div>
+                <div className="stat-label">Occupancy rate</div>
                 <div className="stat-value">
                   {data.overall.occupancy_rate}
                   <small>%</small>
@@ -59,6 +59,18 @@ export default function Report() {
               <div className="stat">
                 <div className="stat-label">Available nights</div>
                 <div className="stat-value">{data.overall.available_nights}</div>
+              </div>
+              <div className="stat">
+                <div className="stat-label">Total rooms</div>
+                <div className="stat-value">{data.overall.total_rooms}</div>
+              </div>
+              <div className="stat">
+                <div className="stat-label">Occupied rooms</div>
+                <div className="stat-value">{data.overall.occupied_rooms}</div>
+              </div>
+              <div className="stat">
+                <div className="stat-label">Confirmed bookings</div>
+                <div className="stat-value">{data.overall.confirmed_bookings}</div>
               </div>
             </div>
 
@@ -90,7 +102,9 @@ export default function Report() {
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td>All rooms</td>
+                    <td>
+                      All rooms ({data.overall.available_rooms} available · {data.overall.blocked_rooms} with blocks)
+                    </td>
                     <td></td>
                     <td></td>
                     <td>{data.overall.available_nights}</td>

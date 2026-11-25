@@ -1,10 +1,11 @@
 import { query, queryOne } from './db.js';
 
-export async function holidaysForMonth(month) {
-  const country = (process.env.HOLIDAY_COUNTRY || 'EG').toUpperCase();
+export async function holidaysForMonth(month, countryCode) {
+  const country = (countryCode || process.env.HOLIDAY_COUNTRY || 'EG').toUpperCase();
   const year = month.slice(0, 4);
   let warning = null;
 
+  // bncheck law el holidays mawgooda fel cache abl ma ne3mel request l Nager.Date
   const cached = await queryOne(
     "SELECT 1 FROM holidays WHERE country_code = $1 AND to_char(date, 'YYYY') = $2 LIMIT 1",
     [country, year],
@@ -22,10 +23,11 @@ export async function holidaysForMonth(month) {
           [country, list.map((h) => h.date), list.map((h) => h.name.slice(0, 150))],
         );
       } else {
+        console.error(`[holidays] Nager.Date returned status ${res.status} for ${year}/${country}`);
         warning = `Public holidays are not available for ${country}.`;
       }
     } catch (error) {
-      console.error(`Nager.Date request failed: ${error.message}`);
+      console.error(`[holidays] Nager.Date request failed: ${error.message}`);
       warning = 'Public holidays could not be loaded right now.';
     }
   }

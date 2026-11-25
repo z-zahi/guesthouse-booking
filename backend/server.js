@@ -9,14 +9,20 @@ import authRoutes from './routes/auth.js';
 import availabilityRoutes from './routes/availability.js';
 import bookingRoutes from './routes/bookings.js';
 import roomRoutes from './routes/rooms.js';
+import { query } from './services/db.js';
 import { UPLOADS_DIR } from './services/storageService.js';
 
 const app = express();
 app.disable('x-powered-by');
 
+// bnsagel kol request bel method w el URL w el status w el modda (mn gher ay passwords aw tokens)
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} ${req.method} ${req.originalUrl}`);
+  const start = Date.now();
   res.set({ 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY', 'Referrer-Policy': 'no-referrer' });
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`${new Date().toISOString()} ${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`);
+  });
   next();
 });
 app.use(cors({ origin: (process.env.CORS_ORIGINS || 'http://localhost:5173').split(',').map((o) => o.trim()) }));
@@ -34,8 +40,21 @@ app.get('/', (req, res) => {
   res.json({ name: 'Guesthouse Room Booking API', health: '/api/health' });
 });
 
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', environment: process.env.NODE_ENV || 'development' });
+app.get('/api/health', async (req, res) => {
+  let dbStatus = 'connected';
+  try {
+    await query('SELECT 1');
+  } catch (err) {
+    dbStatus = 'disconnected';
+    console.error(`[health] Database check failed: ${err.message}`);
+  }
+  const ok = dbStatus === 'connected';
+  res.status(ok ? 200 : 503).json({
+    status: ok ? 'ok' : 'degraded',
+    database: dbStatus,
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+  });
 });
 
 app.use('/api', authRoutes);

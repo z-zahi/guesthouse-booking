@@ -1,5 +1,6 @@
 import { query, queryOne } from './db.js';
 
+// bncheck en el room available fel dates de (confirmed bookings + blocked dates)
 export async function conflictsFor(roomIds, from, to) {
   const [stays, blocks] = await Promise.all([
     query(
@@ -8,7 +9,7 @@ export async function conflictsFor(roomIds, from, to) {
       [roomIds, from, to],
     ),
     query(
-      `SELECT 'block' AS type, id, room_id, start_date, end_date
+      `SELECT 'block' AS type, id, room_id, start_date, end_date, reason
        FROM date_blocks WHERE room_id = ANY($1) AND start_date < $3 AND end_date >= $2`,
       [roomIds, from, to],
     ),
