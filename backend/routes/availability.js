@@ -17,14 +17,13 @@ const Check = z
   .refine((q) => q.room_id || q.guesthouse_id, { path: ['room_id'], message: 'room_id or guesthouse_id is required' })
   .refine(...ordered('from', 'to'));
 const BlockFilters = z.object({ room_id: id.optional(), from: date.optional() });
-const NewBlock = z
-  .object({
-    room_id: id,
-    start_date: futureDate,
-    end_date: date,
-    reason: z.string().trim().max(200).default(''),
-  })
-  .refine(...ordered('start_date', 'end_date', true));
+const BlockFields = {
+  start_date: futureDate,
+  end_date: date,
+  reason: z.string().trim().max(200).default(''),
+};
+const NewBlock = z.object({ room_id: id, ...BlockFields }).refine(...ordered('start_date', 'end_date', true));
+const UpdateBlock = z.object(BlockFields).refine(...ordered('start_date', 'end_date', true));
 const Month = z.object({ month, guesthouse_id: id.optional() });
 
 const staff = requireRole('staff');
@@ -92,9 +91,47 @@ router.post('/blocks', staff, async (req, res) => {
     return availability.createBlock(block);
   });
   console.log(
-    `[blocks] Created block #${created.id} for room ${block.room_id} (${block.start_date} to ${block.end_date})`,
+    `[blocks] Created block #${created.id} for room ${block.room_id} (${block.start_date} to ${block.end_date}) by staff #${req.user.id}`,
   );
   res.status(201).json({ block: created });
+});
+
+router.put('/blocks/:id', staff, async (req, res) => {
+  const existingBlock = await availability.findBlock(req.params.id);
+  if (!existingBlock) throw new HttpError(404, 'BLOCK_NOT_FOUND', 'Block not found.');
+  await ownRoom(req.user, existingBlock.room_id);
+
+  const updates = UpdateBlock.parse(req.body);
+  const updated = await withRoomLock(existingBlock.room_id, async () => {
+    // bn3mel check 3ala el bookings w el blocks el tanya 3ashan mayeb2ash feh overlap
+    const clashes = await availability.conflictsFor(
+      [existingBlock.room_id],
+      updates.start_date,
+      addDays(updates.end_date, 1),
+    );
+    const stay = clashes.find((c) => c.type === 'booking');
+    if (stay) {
+      throw new HttpError(
+        409,
+        'ROOM_UNAVAILABLE',
+        `A confirmed stay from ${stay.start_date} to ${stay.end_date} overlaps these dates.`,
+      );
+    }
+    const otherBlock = clashes.find((c) => c.type === 'block' && c.id !== existingBlock.id);
+    if (otherBlock) {
+      throw new HttpError(
+        409,
+        'BLOCK_OVERLAP',
+        `These dates overlap an existing block from ${otherBlock.start_date} to ${otherBlock.end_date}.`,
+      );
+    }
+    return availability.updateBlock(existingBlock.id, updates);
+  });
+
+  console.log(
+    `[blocks] Updated block #${updated.id} for room ${existingBlock.room_id} (${updates.start_date} to ${updates.end_date}) by staff #${req.user.id}`,
+  );
+  res.json({ block: updated });
 });
 
 router.delete('/blocks/:id', staff, async (req, res) => {
@@ -102,13 +139,20 @@ router.delete('/blocks/:id', staff, async (req, res) => {
   if (!block) throw new HttpError(404, 'BLOCK_NOT_FOUND', 'Block not found.');
   await ownRoom(req.user, block.room_id);
   await availability.removeBlock(block.id);
-  console.log(`[blocks] Deleted block #${block.id} for room ${block.room_id}`);
+  console.log(`[blocks] Deleted block #${block.id} for room ${block.room_id} by staff #${req.user.id}`);
   res.status(204).end();
 });
 
 router.get('/calendar', staffOrAdmin, async (req, res) => {
   const { month: m, guesthouse_id } = monthQuery(req);
-  const [data, { holidays, warning }] = await Promise.all([calendar.monthData(guesthouse_id, m), holidaysForMonth(m)]);
+  const guesthouse = await guesthouses.findById(guesthouse_id);
+  if (!guesthouse) throw new HttpError(404, 'GUESTHOUSE_NOT_FOUND', 'Guesthouse not found.');
+
+  // bngeb el country code mn el guesthouse law mawgood, w law la bnesta3mel el default
+  const [data, { holidays, warning }] = await Promise.all([
+    calendar.monthData(guesthouse_id, m),
+    holidaysForMonth(m, guesthouse.country_code),
+  ]);
   res.json({
     guesthouse_id,
     month: m,

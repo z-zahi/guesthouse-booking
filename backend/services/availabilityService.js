@@ -41,4 +41,12 @@ export const createBlock = ({ room_id, start_date, end_date, reason }) =>
     reason,
   ]);
 
+export const updateBlock = (id, { start_date, end_date, reason }) =>
+  queryOne('UPDATE date_blocks SET start_date = $2, end_date = $3, reason = $4 WHERE id = $1 RETURNING *', [
+    id,
+    start_date,
+    end_date,
+    reason,
+  ]);
+
 export const removeBlock = (id) => query('DELETE FROM date_blocks WHERE id = $1', [id]);
