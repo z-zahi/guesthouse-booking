@@ -5,6 +5,7 @@ const AuthContext = createContext(null);
 
 function storedUser() {
   try {
+    if (!localStorage.getItem('token')) return null;
     return JSON.parse(localStorage.getItem('user'));
   } catch {
     return null;
@@ -14,11 +15,11 @@ function storedUser() {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(storedUser);
 
-  const save = ({ user, token }) => {
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
-    setUser(user);
-    return user;
+  const saveSession = (data) => {
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    setUser(data.user);
+    return data.user;
   };
 
   const logout = () => {
@@ -27,19 +28,23 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  // Any 401 from the API means the token expired.
+  // Clear local session if any API call reports an expired or invalid token.
   useEffect(() => {
     window.addEventListener('auth:expired', logout);
     return () => window.removeEventListener('auth:expired', logout);
   }, []);
 
-  const value = {
-    user,
-    login: async (email, password) => save(await api('/api/sessions', { method: 'POST', body: { email, password } })),
-    register: async (fields) => save(await api('/api/users', { method: 'POST', body: fields })),
-    logout,
+  const login = async (email, password) => {
+    const data = await api('/api/sessions', { method: 'POST', body: { email, password } });
+    return saveSession(data);
   };
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+
+  const register = async (fields) => {
+    const data = await api('/api/users', { method: 'POST', body: fields });
+    return saveSession(data);
+  };
+
+  return <AuthContext.Provider value={{ user, login, register, logout }}>{children}</AuthContext.Provider>;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components

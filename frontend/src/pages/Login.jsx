@@ -23,13 +23,18 @@ export function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const action = useAction();
-  if (user) return <Navigate to={location.state?.from || HOME[user.role]} replace />;
+
+  if (user) {
+    return <Navigate to={location.state?.from || HOME[user.role]} replace />;
+  }
 
   const submit = async (e) => {
     e.preventDefault();
     const { email, password } = formData(e);
-    const u = await action.run(() => login(email, password));
-    if (u) navigate(location.state?.from || HOME[u.role], { replace: true });
+    const loggedInUser = await action.run(() => login(email.trim(), password));
+    if (loggedInUser) {
+      navigate(location.state?.from || HOME[loggedInUser.role], { replace: true });
+    }
   };
 
   return (
@@ -64,12 +69,27 @@ export function Register() {
   const navigate = useNavigate();
   const location = useLocation();
   const action = useAction();
-  if (user) return <Navigate to={location.state?.from || HOME[user.role]} replace />;
+
+  if (user) {
+    return <Navigate to={location.state?.from || HOME[user.role]} replace />;
+  }
 
   const submit = async (e) => {
     e.preventDefault();
-    const u = await action.run(() => register(formData(e)));
-    if (u) navigate(location.state?.from || '/', { replace: true });
+    const fields = formData(e);
+    const createdUser = await action.run(async () => {
+      if (fields.name.trim().length < 2) {
+        throw new Error('Full name must be at least 2 characters.');
+      }
+      return register({
+        name: fields.name.trim(),
+        email: fields.email.trim(),
+        password: fields.password,
+      });
+    });
+    if (createdUser) {
+      navigate(location.state?.from || '/', { replace: true });
+    }
   };
 
   return (
@@ -78,7 +98,7 @@ export function Register() {
       <form onSubmit={submit} className="panel stack">
         <label>
           Full name
-          <Input name="name" autoComplete="name" minLength="2" required />
+          <Input name="name" autoComplete="name" minLength="2" maxLength="100" required />
         </label>
         <label>
           Email
@@ -91,6 +111,7 @@ export function Register() {
             name="password"
             autoComplete="new-password"
             minLength="8"
+            maxLength="72"
             aria-describedby="password-hint"
             required
           />
