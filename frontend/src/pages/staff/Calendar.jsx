@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Dialog } from '@base-ui/react/dialog';
 import { ChoiceField, DateInput, MonthNavigation } from '../../fields.jsx';
 import { Input } from '@base-ui/react/input';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -40,7 +41,9 @@ export default function Calendar() {
   const blocks = useLoad('/api/blocks');
   const [blockForm, setBlockForm] = useState(0);
   const [selectedCell, setSelectedCell] = useState(null);
+  const [editingBlock, setEditingBlock] = useState(null);
   const action = useAction();
+  const editAction = useAction();
 
   const reloadAll = () => {
     cal.reload();
@@ -68,6 +71,22 @@ export default function Calendar() {
       .run(() => api(`/api/blocks/${b.id}`, { method: 'DELETE' }), 'Block removed.')
       .then((r) => {
         if (r !== undefined) reloadAll();
+      });
+  };
+
+  const saveBlockEdit = (e) => {
+    e.preventDefault();
+    const f = formData(e);
+    editAction
+      .run(
+        () => api(`/api/blocks/${editingBlock.id}`, { method: 'PUT', body: f }),
+        (r) => `Updated block to ${r.block.start_date} – ${r.block.end_date}.`,
+      )
+      .then((r) => {
+        if (r) {
+          setEditingBlock(null);
+          reloadAll();
+        }
       });
   };
 
@@ -271,6 +290,7 @@ export default function Calendar() {
 
         <section className="panel">
           <h2 className="section-title">Upcoming blocks</h2>
+          {!editingBlock && editAction.alert}
           <Alert>{blocks.error}</Alert>
           {blocks.loading && !blocks.data && <Loading />}
           {blocks.data &&
@@ -289,22 +309,86 @@ export default function Calendar() {
                         {b.reason ? ` · ${b.reason}` : ''}
                       </div>
                     </div>
-                    <ConfirmButton
-                      className="plain small"
-                      disabled={action.busy}
-                      title="Remove this block?"
-                      description={`${b.room_name}, ${fmtRange(b.start_date, b.end_date)}. The nights become bookable again.`}
-                      confirmLabel="Remove"
-                      onConfirm={() => removeBlock(b)}
-                    >
-                      Remove
-                    </ConfirmButton>
+                    <div className="actions">
+                      <button
+                        type="button"
+                        className="plain small"
+                        disabled={action.busy || editAction.busy}
+                        onClick={() => {
+                          editAction.clear();
+                          setEditingBlock(b);
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <ConfirmButton
+                        className="plain small"
+                        disabled={action.busy || editAction.busy}
+                        title="Remove this block?"
+                        description={`${b.room_name}, ${fmtRange(b.start_date, b.end_date)}. The nights become bookable again.`}
+                        confirmLabel="Remove"
+                        onConfirm={() => removeBlock(b)}
+                      >
+                        Remove
+                      </ConfirmButton>
+                    </div>
                   </div>
                 ))}
               </div>
             ))}
         </section>
       </div>
+
+      <Dialog.Root
+        open={Boolean(editingBlock)}
+        onOpenChange={(open) => {
+          if (editAction.busy) return;
+          if (!open) setEditingBlock(null);
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Backdrop className="dialog-backdrop" />
+          <Dialog.Popup className="dialog">
+            <Dialog.Title className="dialog-title">Edit Date Block</Dialog.Title>
+            {editingBlock && (
+              <>
+                <Dialog.Description className="dialog-text">{editingBlock.room_name}</Dialog.Description>
+                <form className="stack" autoComplete="off" key={editingBlock.id} onSubmit={saveBlockEdit}>
+                  <div className="row">
+                    <DateInput
+                      label="First night"
+                      name="start_date"
+                      min={today()}
+                      defaultValue={editingBlock.start_date}
+                      required
+                    />
+                    <DateInput
+                      label="Last night"
+                      name="end_date"
+                      min={today()}
+                      defaultValue={editingBlock.end_date}
+                      required
+                    />
+                  </div>
+                  <label>
+                    Reason
+                    <Input name="reason" maxLength="200" defaultValue={editingBlock.reason} />
+                  </label>
+                  {editAction.alert}
+                  <div className="dialog-actions">
+                    <Dialog.Close className="secondary" disabled={editAction.busy}>
+                      Cancel
+                    </Dialog.Close>
+                    <button type="submit" disabled={editAction.busy}>
+                      {editAction.busy ? 'Saving…' : 'Save Changes'}
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   );
 }

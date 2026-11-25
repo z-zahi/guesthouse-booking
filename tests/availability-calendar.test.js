@@ -72,7 +72,7 @@ function createFakeDatabase() {
   const state = {
     guesthouses: [
       { id: 1, name: 'Nile View Guesthouse', city: 'Luxor', contact_email: 'hello@nileview.test' },
-      { id: 2, name: 'Siwa Oasis Lodge', city: 'Siwa', contact_email: 'stay@siwa.test' },
+      { id: 2, name: 'Siwa Oasis Lodge', city: 'Siwa', contact_email: 'stay@siwa.test', country_code: 'DE' },
     ],
     users: [],
     rooms: [
@@ -229,6 +229,15 @@ function createFakeDatabase() {
       const [room_id, start_date, end_date, reason] = params;
       const block = { id: state.nextBlockId++, room_id, start_date, end_date, reason };
       state.date_blocks.push(block);
+      return { rows: [block] };
+    }
+    if (text.startsWith('UPDATE date_blocks SET start_date = $2')) {
+      const [id, start_date, end_date, reason] = params;
+      const block = state.date_blocks.find((d) => d.id === id);
+      if (!block) return { rows: [] };
+      block.start_date = start_date;
+      block.end_date = end_date;
+      block.reason = reason;
       return { rows: [block] };
     }
     if (text.startsWith('DELETE FROM date_blocks WHERE id = $1')) {
@@ -417,6 +426,87 @@ describe('Availability & Calendar Service (Omar)', () => {
     assert.equal(del.status, 204);
   });
 
+  test('Date block update validates dates, prevents conflicts, and enforces room ownership', async () => {
+    const staffToken = await loginAs('staff@nileview.test');
+    const otherStaffToken = await loginAs('staff@siwa.test');
+
+    const d20 = futureDay(20);
+    const d21 = futureDay(21);
+    const d22 = futureDay(22);
+    const d25 = futureDay(25);
+    const d26 = futureDay(26);
+    const d28 = futureDay(28);
+
+    const b1 = await callApp(app, '/blocks', {
+      method: 'POST',
+      token: staffToken,
+      body: { room_id: 1, start_date: d20, end_date: d22, reason: 'Initial' },
+    });
+    assert.equal(b1.status, 201);
+
+    // Another block on the same room later in the month
+    const b2 = await callApp(app, '/blocks', {
+      method: 'POST',
+      token: staffToken,
+      body: { room_id: 1, start_date: d25, end_date: d26, reason: 'Other block' },
+    });
+    assert.equal(b2.status, 201);
+
+    // Confirmed booking on d28..d29
+    db.state.bookings.push({
+      id: 9,
+      room_id: 1,
+      guest_id: 3,
+      check_in: d28,
+      check_out: futureDay(29),
+      status: 'Confirmed',
+    });
+
+    // Valid update overlapping its own old dates
+    const updated = await callApp(app, `/blocks/${b1.data.block.id}`, {
+      method: 'PUT',
+      token: staffToken,
+      body: { start_date: d21, end_date: d22, reason: 'Updated reason' },
+    });
+    assert.equal(updated.status, 200);
+    assert.equal(updated.data.block.reason, 'Updated reason');
+    assert.equal(updated.data.block.start_date, d21);
+
+    // Invalid date range
+    const invalid = await callApp(app, `/blocks/${b1.data.block.id}`, {
+      method: 'PUT',
+      token: staffToken,
+      body: { start_date: d22, end_date: d20, reason: 'Backwards' },
+    });
+    assert.equal(invalid.status, 400);
+
+    // Overlap with another block
+    const blockOverlap = await callApp(app, `/blocks/${b1.data.block.id}`, {
+      method: 'PUT',
+      token: staffToken,
+      body: { start_date: d25, end_date: d26, reason: 'Clash' },
+    });
+    assert.equal(blockOverlap.status, 409);
+    assert.equal(blockOverlap.data.error.code, 'BLOCK_OVERLAP');
+
+    // Overlap with confirmed booking
+    const stayOverlap = await callApp(app, `/blocks/${b1.data.block.id}`, {
+      method: 'PUT',
+      token: staffToken,
+      body: { start_date: d28, end_date: d28, reason: 'Stay clash' },
+    });
+    assert.equal(stayOverlap.status, 409);
+    assert.equal(stayOverlap.data.error.code, 'ROOM_UNAVAILABLE');
+
+    // Other guesthouse staff forbidden
+    const forbidden = await callApp(app, `/blocks/${b1.data.block.id}`, {
+      method: 'PUT',
+      token: otherStaffToken,
+      body: { start_date: d21, end_date: d22, reason: 'Hijack' },
+    });
+    assert.equal(forbidden.status, 403);
+  });
+
   test('Calendar and Nager.Date holidays work, cache duplicate requests, and handle API failure gracefully', async () => {
     const staffToken = await loginAs('staff@nileview.test');
     const guestToken = await loginAs('guest@guesthouse.test');
@@ -464,6 +554,21 @@ describe('Availability & Calendar Service (Omar)', () => {
     const cal2 = await callApp(app, '/calendar?month=2027-02', { token: staffToken });
     assert.equal(cal2.status, 200);
     assert.equal(nagerCalls, 1);
+
+    // Guesthouse with its own country_code ('DE') fetches holidays for 'DE' instead of default 'EG'
+    const siwaStaffToken = await loginAs('staff@siwa.test');
+    let requestedUrl = '';
+    globalThis.fetch = async (url) => {
+      requestedUrl = String(url);
+      return new Response(JSON.stringify([{ date: '2027-10-03', name: 'German Unity Day' }]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    };
+    const deCal = await callApp(app, '/calendar?month=2027-10', { token: siwaStaffToken });
+    assert.equal(deCal.status, 200);
+    assert.ok(requestedUrl.endsWith('/2027/DE'));
+    assert.equal(deCal.data.holidays[0].name, 'German Unity Day');
 
     // Nager.Date unavailable for a different year -> calendar still returns 200 with holiday_warning
     globalThis.fetch = async () => {
