@@ -1,10 +1,14 @@
 import { MonthNavigation } from '../../fields.jsx';
 import { useSearchParams } from 'react-router-dom';
-import { query, thisMonth } from '../../api.js';
+import { query, thisMonth, today } from '../../api.js';
 import { Alert, Loading } from '../../components.jsx';
 import { useLoad } from '../../hooks.jsx';
 import { Empty, PageHead } from '../../ui.jsx';
 import '../../staff.css';
+
+function csvCell(value) {
+  return `"${String(value ?? '').replaceAll('"', '""')}"`;
+}
 
 function Rate({ value }) {
   return (
@@ -24,6 +28,41 @@ export default function Report() {
   const setMonth = (nextMonth) => setParams({ month: nextMonth });
   const { data, error, loading } = useLoad(`/api/reports/occupancy${query({ month })}`);
 
+  const exportCsv = () => {
+    if (!data || data.rooms.length === 0) return;
+    const totalBlocked = data.rooms.reduce((sum, r) => sum + r.blocked_nights, 0);
+    const rows = [
+      ['Selected Month', month],
+      ['Report Date', today()],
+      [],
+      ['Room Name', 'Total Nights', 'Booked Nights', 'Available Nights', 'Blocked Nights', 'Occupancy (%)'],
+      ...data.rooms.map((r) => [
+        r.room_name,
+        r.nights_in_month,
+        r.booked_nights,
+        r.available_nights,
+        r.blocked_nights,
+        r.occupancy_rate,
+      ]),
+      [
+        'All Rooms',
+        '',
+        data.overall.booked_nights,
+        data.overall.available_nights,
+        totalBlocked,
+        data.overall.occupancy_rate,
+      ],
+    ];
+    const csv = rows.map((row) => row.map(csvCell).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `occupancy-report-${month}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="page">
       <PageHead
@@ -31,6 +70,9 @@ export default function Report() {
         lead="Booked nights divided by available nights. Blocked nights do not count as available."
       >
         <MonthNavigation month={month} onChange={setMonth} />
+        <button type="button" className="secondary" disabled={!data || data.rooms.length === 0} onClick={exportCsv}>
+          Export CSV
+        </button>
       </PageHead>
 
       <Alert>{error}</Alert>
