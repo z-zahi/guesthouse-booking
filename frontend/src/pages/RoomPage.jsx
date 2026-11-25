@@ -162,8 +162,8 @@ export default function RoomPage() {
 
               {booked ? (
                 <Alert type="success">
-                  Request sent. Check My Bookings for the guesthouse’s decision.{' '}
-                  <Link to="/bookings">See my bookings</Link>
+                  Booking request #{booked.id} sent for {fmtRange(booked.check_in, booked.check_out)} (
+                  {money(booked.total_price)}). Status is Pending. <Link to="/bookings">See my bookings</Link>
                 </Alert>
               ) : user?.role === 'guest' ? (
                 <form onSubmit={requestStay} className="stack" autoComplete="off">
