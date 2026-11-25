@@ -60,12 +60,12 @@ export function buildGrid({ days, rooms, bookings, blocks }) {
 
 // bn7seb el occupancy rate mn available room nights (excluding blocked nights)
 export function occupancyReport({ days, rooms, bookings, blocks }) {
-  const rate = (booked, available) => (available > 0 ? Math.round((booked / available) * 1000) / 10 : 0);
+  const rate = (booked, available) => (available > 0 ? Math.min(100, Math.round((booked / available) * 1000) / 10) : 0);
 
   const perRoom = rooms.map((room) => {
     const blocked = days.filter((d) => blocks.some((b) => blockOn(b, room.id, d))).length;
     const booked = days.filter((d) => bookings.some((b) => b.status === 'Confirmed' && stayOn(b, room.id, d))).length;
-    const available = days.length - blocked;
+    const available = Math.max(0, days.length - blocked);
     return {
       room_id: room.id,
       room_name: room.name,
