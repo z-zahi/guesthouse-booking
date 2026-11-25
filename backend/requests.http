@@ -1,0 +1,165 @@
+@baseUrl = http://localhost:3000
+@guestToken = paste-a-guest-token
+@staffToken = paste-a-staff-token
+@adminToken = paste-an-admin-token
+
+###
+GET {{baseUrl}}/api/health
+
+###
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{ "name": "Test Guest", "email": "test.guest@example.test", "password": "Password123" }
+
+###
+POST {{baseUrl}}/api/sessions
+Content-Type: application/json
+
+{ "email": "staff@nileview.test", "password": "your-password" }
+
+###
+GET {{baseUrl}}/api/users/me
+Authorization: Bearer {{guestToken}}
+
+###
+GET {{baseUrl}}/api/admin/guesthouses
+Authorization: Bearer {{adminToken}}
+
+###
+POST {{baseUrl}}/api/admin/guesthouses
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "name": "Aswan Home", "city": "Aswan", "contact_email": "hello@aswan.test" }
+
+###
+POST {{baseUrl}}/api/admin/staff
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{ "name": "New Staff", "email": "new.staff@aswan.test", "password": "Password123", "guesthouse_id": 3 }
+
+###
+GET {{baseUrl}}/api/rooms?city=Luxor&guests=2&from=2027-02-01&to=2027-02-04
+
+###
+GET {{baseUrl}}/api/rooms/1
+
+###
+GET {{baseUrl}}/api/rooms/1/quote?from=2027-02-01&to=2027-02-08&guests=2
+
+###
+GET {{baseUrl}}/api/rooms?mine=true
+Authorization: Bearer {{staffToken}}
+
+###
+POST {{baseUrl}}/api/rooms
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{ "name": "Room 4, Courtyard", "type": "Double", "capacity": 2, "base_price": 1000, "description": "Quiet room on the courtyard." }
+
+###
+PUT {{baseUrl}}/api/rooms/1
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{ "name": "Room 1, Nile Balcony", "type": "Double", "capacity": 2, "base_price": 1250, "description": "Double room with a balcony facing the Nile." }
+
+###
+PATCH {{baseUrl}}/api/rooms/1/status
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{ "status": "Inactive" }
+
+###
+POST {{baseUrl}}/api/rooms/1/rates
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{ "start_date": "2027-04-01", "end_date": "2027-04-30", "nightly_price": 1500, "min_nights": 2 }
+
+###
+DELETE {{baseUrl}}/api/rooms/1/rates/1
+Authorization: Bearer {{staffToken}}
+
+###
+PUT {{baseUrl}}/api/rooms/1/discount
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{ "min_nights": 7, "percent": 10 }
+
+###
+POST {{baseUrl}}/api/rooms/1/photos
+Authorization: Bearer {{staffToken}}
+Content-Type: image/jpeg
+
+< ./room.jpg
+
+###
+POST {{baseUrl}}/api/bookings
+Authorization: Bearer {{guestToken}}
+Content-Type: application/json
+
+{ "room_id": 1, "check_in": "2027-02-01", "check_out": "2027-02-04", "guests": 2, "note": "Late arrival" }
+
+###
+GET {{baseUrl}}/api/bookings?status=Pending
+Authorization: Bearer {{staffToken}}
+
+###
+GET {{baseUrl}}/api/bookings/1
+Authorization: Bearer {{guestToken}}
+
+###
+PATCH {{baseUrl}}/api/bookings/1/status
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{ "status": "Confirmed" }
+
+###
+PATCH {{baseUrl}}/api/bookings/1/status
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{ "status": "Rejected", "reason": "The room is closed for repairs." }
+
+###
+PATCH {{baseUrl}}/api/bookings/1/status
+Authorization: Bearer {{guestToken}}
+Content-Type: application/json
+
+{ "status": "Cancelled" }
+
+###
+GET {{baseUrl}}/api/availability?room_id=1&from=2027-02-01&to=2027-02-04
+
+###
+GET {{baseUrl}}/api/availability?guesthouse_id=1&from=2027-02-01&to=2027-02-04
+
+###
+GET {{baseUrl}}/api/blocks
+Authorization: Bearer {{staffToken}}
+
+###
+POST {{baseUrl}}/api/blocks
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{ "room_id": 2, "start_date": "2027-03-10", "end_date": "2027-03-12", "reason": "Painting" }
+
+###
+DELETE {{baseUrl}}/api/blocks/1
+Authorization: Bearer {{staffToken}}
+
+###
+GET {{baseUrl}}/api/calendar?month=2027-02
+Authorization: Bearer {{staffToken}}
+
+###
+GET {{baseUrl}}/api/reports/occupancy?month=2027-02
+Authorization: Bearer {{staffToken}}

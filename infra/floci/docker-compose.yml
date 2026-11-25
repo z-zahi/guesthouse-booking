@@ -1,0 +1,36 @@
+name: guesthouse-floci
+
+services:
+  floci:
+    image: floci/floci:2.5.0
+    ports:
+      - '127.0.0.1:4566:4566'
+    environment:
+      FLOCI_HOSTNAME: floci
+      FLOCI_STORAGE_MODE: persistent
+      FLOCI_STORAGE_PERSISTENT_PATH: /app/data
+      FLOCI_BASE_URL: http://localhost:4566
+      FLOCI_SERVICES_UI_IMAGE: ghcr.io/ofsazib/floci-dash:latest
+      FLOCI_SERVICES_UI_CONTAINER_NAME: floci-dash
+      FLOCI_SERVICES_UI_BIND_ADDRESS: '127.0.0.1'
+      FLOCI_SERVICES_UI_ENDPOINT_ENV: FLOCI_URL
+      FLOCI_SERVICES_UI_STATUS_PATH: /api/healthz
+    volumes:
+      - floci-data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  postgres:
+    image: postgres:16-alpine
+    profiles: [local-db]
+    ports:
+      - '127.0.0.1:55432:5432'
+    environment:
+      POSTGRES_USER: guesthouse
+      POSTGRES_DB: guesthouse
+      POSTGRES_PASSWORD: ${FLOCI_DB_PASSWORD:-}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  floci-data:
+  postgres-data:
